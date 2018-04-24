@@ -82,6 +82,30 @@ function getDeclareImport(node) {
   };
 }
 
+function getDynamicImport(node) {
+  if (
+    node.callee.type !== "MemberExpression" ||
+    node.callee.object.name !== "Promise" ||
+    node.callee.property.name !== "resolve"
+  ) {
+    return;
+  }
+  if (
+    node.arguments.length !== 1 ||
+    node.arguments[0].type !== "CallExpression"
+  ) {
+    return;
+  }
+  const required = getRequireInfo(node.arguments[0]);
+  if (required) {
+    return {
+      start: node.start,
+      end: node.end,
+      required
+    };
+  }
+}
+
 function getRequireInfo(node) {
   if (
     node.callee.name === "require" &&
@@ -275,6 +299,23 @@ function transformImportDeclare({s, node, code}) {
   s.remove(declared.required.end, declared.right.end);
 }
 
+function transformImportDynamic({s, node}) {
+  const imported = getDynamicImport(node);
+  if (!imported) {
+    return;
+  }
+  s.overwrite(
+    imported.start,
+    imported.required.start,
+    "import("
+  );
+  s.overwrite(
+    imported.required.end,
+    imported.end,
+    ")"
+  );
+}
+
 function transform({parse, code}) {
   const s = new MagicString(code);
   let ast;
@@ -292,6 +333,8 @@ function transform({parse, code}) {
       transformExportAssign({s, node});
     } else if (node.type === "ExpressionStatement" && parent.type === "Program") {
       node.topLevel = true;
+    } else if (node.type === "CallExpression") {
+      transformImportDynamic({s, node});
     }
   }});
   return {code: s.toString()};
