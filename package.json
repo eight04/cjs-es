@@ -1,13 +1,20 @@
 {
-  "name": "rollup-plugin-commonjs-lite",
+  "name": "cjs-es",
   "version": "0.0.0",
-  "description": "A liter commonjs plugin",
+  "description": "Transform CommonJS module into ES module.",
   "keywords": [
-    "rollup-plugin"
+    "cjs",
+    "commonjs",
+    "es",
+    "import",
+    "export",
+    "transform"
   ],
   "main": "index.js",
   "scripts": {
-    "test": "eslint **/*.js && mocha"
+    "test": "eslint **/*.js && mocha",
+    "preversion": "npm test",
+    "postversion": "git push --follow-tags && npm publish"
   },
   "repository": "eight04/rollup-plugin-commonjs-lite",
   "author": "eight04 <eight04@gmail.com>",
@@ -15,10 +22,10 @@
   "devDependencies": {
     "acorn": "^5.5.3",
     "eslint": "^4.19.1",
-    "estree-walker": "^0.5.1",
     "mocha": "^5.1.1"
   },
   "dependencies": {
+    "estree-walker": "^0.5.1",
     "magic-string": "^0.24.0"
   }
 }
