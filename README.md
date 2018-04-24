@@ -1,6 +1,8 @@
 cjs-es
 ======
 
+[![Build Status](https://travis-ci.org/eight04/cjs-es.svg?branch=master)](https://travis-ci.org/eight04/cjs-es)
+
 Transform CommonJS module into ES module.
 
 Features
