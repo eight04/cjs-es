@@ -316,7 +316,7 @@ function transformImportDynamic({s, node}) {
   );
 }
 
-function transform({parse, code}) {
+function transform({parse, code, sourceMap = false} = {}) {
   const s = new MagicString(code);
   let ast;
   try {
@@ -325,7 +325,6 @@ function transform({parse, code}) {
     return;
   }
   walk(ast, {enter(node, parent) {
-    // rewrite export
     if (node.type === "VariableDeclaration" && parent.type === "Program") {
       transformImportDeclare({s, node, code});
       transformExportDeclare({s, node});
@@ -337,7 +336,10 @@ function transform({parse, code}) {
       transformImportDynamic({s, node});
     }
   }});
-  return {code: s.toString()};
+  return {
+    code: s.toString(),
+    map: sourceMap && s.generateMap()
+  };
 }
 
 module.exports = {transform};
