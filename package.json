@@ -1,0 +1,24 @@
+{
+  "name": "rollup-plugin-commonjs-lite",
+  "version": "0.0.0",
+  "description": "A liter commonjs plugin",
+  "keywords": [
+    "rollup-plugin"
+  ],
+  "main": "index.js",
+  "scripts": {
+    "test": "eslint **/*.js && mocha"
+  },
+  "repository": "eight04/rollup-plugin-commonjs-lite",
+  "author": "eight04 <eight04@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "acorn": "^5.5.3",
+    "eslint": "^4.19.1",
+    "estree-walker": "^0.5.1",
+    "mocha": "^5.1.1"
+  },
+  "dependencies": {
+    "magic-string": "^0.24.0"
+  }
+}
