@@ -316,7 +316,7 @@ function transformImportDynamic({s, node}) {
   );
 }
 
-function transform({parse, code, sourceMap = false} = {}) {
+function transform({parse, code, sourceMap = false, importStyle = "named", exportStyle = "named"} = {}) {
   const s = new MagicString(code);
   const ast = parse(code);
   walk(ast, {enter(node, parent) {
