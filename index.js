@@ -260,7 +260,7 @@ function transformImportDeclare({s, node, code, importStyle}) {
     // const foo = require("foo")
     const rx = /.*?\/\/.*\bdefault\b/y;
     rx.lastIndex = declared.required.end;
-    if (rx.test(code) || importStyle() === "default") {
+    if (rx.test(code) || importStyle(declared.required.value) === "default") {
       // import default
       s.overwrite(
         node.start,
