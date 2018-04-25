@@ -143,6 +143,13 @@ The result object has following members:
 Changelog
 ---------
 
+* 0.2.0 (Apr 26, 2018)
+
+  - Change: don't suppress parse error.
+  - Change: remove `// all` comment.
+  - Add: importStyle, exportStyle option.
+  - Add: use `// default` to change import/export style.
+
 * 0.1.0 (Apr 25, 2018)
 
   - Initial release.
