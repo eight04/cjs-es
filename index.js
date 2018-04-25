@@ -318,12 +318,7 @@ function transformImportDynamic({s, node}) {
 
 function transform({parse, code, sourceMap = false} = {}) {
   const s = new MagicString(code);
-  let ast;
-  try {
-    ast = parse(code);
-  } catch (err) {
-    return;
-  }
+  const ast = parse(code);
   walk(ast, {enter(node, parent) {
     if (node.type === "VariableDeclaration" && parent.type === "Program") {
       transformImportDeclare({s, node, code});
