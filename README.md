@@ -33,46 +33,85 @@ function bar() {}
 module.exports = {foo, bar};
 `
 });
-/* code -> `
+/* code == `
 function foo() {}
 function bar() {}
 export {foo};
 export {bar};
-`
+` */
 ```
 
-Import problem
---------------
+Import style
+------------
 
-There are two ways to transform the `require` statement when binding the module into one identifier:
+When binding the module into one identifier:
 
 ```js
 const foo = require("foo");
 ```
 
-1. Prefer default import, which is the default behavior of the transformer:
+The transformer imports all members from the module by the default:
 
-    ```js
-    import foo from "foo";
-    ```
+```js
+import * as foo from "foo";
+```
    
-2. Prefer named import:
+To import the default member, add `// default` comment:
 
-    ```js
-    import * as foo from "foo";
-    ```
-     
-    You can switch to this behavior by specifying comment `// all` after `require`:
-     
-    ```js
-    const foo = require("foo"); // all
-    ```
+```js
+const foo = require("foo"); // default
+```
+
+Result:
+
+```js
+import foo from "foo";
+```
     
-    The regex of import-all comment:
+Export style
+------------
+
+If the `module.exports` is assigned with an object pattern:
+
+```js
+const foo = "foo";
+const bar = "bar";
+module.exports = {
+  foo,
+  bar
+};
+```
+
+The transformer converts it into named exports:
+
+```js
+const foo = "foo";
+const bar = "bar";
+export {foo};
+export {bar};
+```
     
-    ```js
-    /.+\/\/.+\b(all|import\b.\ball)\b/
-    ```
+If you like to export the entire object as the default member, you can use `// default` comment at the line of `module.exports`:
+
+```js
+const foo = "foo";
+const bar = "bar";
+module.exports = { // default
+  foo,
+  bar
+};
+```
+
+Result:
+
+```js
+const foo = "foo";
+const bar = "bar";
+export default {
+  foo,
+  bar
+};
+```
 
 API reference
 -------------
@@ -85,9 +124,16 @@ This module exports following members.
 
 `options` has following members:
 
-* `parse`: function. A parser function which can parse JavaScript code into ESTree.
-* `code`: string. The JavaScript source code.
-* `sourceMap?`: boolean. If true then generate the source map. Default: `false`
+* `parse`: `function`. A parser function which can parse JavaScript code into ESTree.
+* `code`: `string`. The JavaScript source code.
+* `sourceMap?`: `boolean`. If true then generate the source map. Default: `false`
+* `importStyle?`: `string` or `function -> string`. The result must be `"named"` or `"default"`. Default: `"named"`
+
+  When the value is a function, it recieves one argument:
+
+  - `moduleId`: `string`. The module ID of `require("module-id")`.
+
+* `exportStyle?`: `string` or `function -> string`. The result must be `"named"` or `"default"`. Default: `"named"`
 
 The result object has following members:
 
