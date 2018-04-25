@@ -152,7 +152,7 @@ function getObjectInfo(node, checkValueType) {
   };
 }
 
-function transformExportAssign({s, node}) {
+function transformExportAssign({s, node, exportStyle, code}) {
   const exported = getExportInfo(node);
   if (!exported) {
     return;
@@ -180,7 +180,9 @@ function transformExportAssign({s, node}) {
       s.appendLeft(node.end, `;\nexport {_export_${exported.name}_ as ${exported.name}}`);
     }
   } else {
-    if (exported.value.type !== "ObjectExpression") {
+    const rx = /.*?\/\/.*\bdefault\b/y;
+    rx.lastIndex = node.start;
+    if (exported.value.type !== "ObjectExpression" || exportStyle() === "default" || rx.test(code)) {
       // module.exports = ...
       s.overwrite(
         node.start,
@@ -249,28 +251,28 @@ function transformExportDeclare({s, node}) {
   );
 }
 
-function transformImportDeclare({s, node, code}) {
+function transformImportDeclare({s, node, code, importStyle}) {
   const declared = getDeclareImport(node);
   if (!declared) {
     return;
   }
   if (!declared.object) {
     // const foo = require("foo")
-    const rx = /.+\/\/.+\b(all|import\b.\ball)\b/y;
+    const rx = /.*?\/\/.*\bdefault\b/y;
     rx.lastIndex = declared.required.end;
-    if (rx.test(code)) {
-      // import all
-      s.overwrite(
-        node.start,
-        declared.left.start,
-        "import * as "
-      );
-    } else {
+    if (rx.test(code) || importStyle() === "default") {
       // import default
       s.overwrite(
         node.start,
         declared.left.start,
         "import "
+      );
+    } else {
+      // import named
+      s.overwrite(
+        node.start,
+        declared.left.start,
+        "import * as "
       );
     }
   } else {
@@ -316,15 +318,24 @@ function transformImportDynamic({s, node}) {
   );
 }
 
+function makeCallable(func) {
+  if (typeof func === "function") {
+    return func;
+  }
+  return () => func;
+}
+
 function transform({parse, code, sourceMap = false, importStyle = "named", exportStyle = "named"} = {}) {
+  importStyle = makeCallable(importStyle);
+  exportStyle = makeCallable(exportStyle);
   const s = new MagicString(code);
   const ast = parse(code);
   walk(ast, {enter(node, parent) {
     if (node.type === "VariableDeclaration" && parent.type === "Program") {
-      transformImportDeclare({s, node, code});
+      transformImportDeclare({s, node, importStyle, code});
       transformExportDeclare({s, node});
     } else if (node.type === "AssignmentExpression" && parent.topLevel) {
-      transformExportAssign({s, node});
+      transformExportAssign({s, node, exportStyle, code});
     } else if (node.type === "ExpressionStatement" && parent.type === "Program") {
       node.topLevel = true;
     } else if (node.type === "CallExpression") {
