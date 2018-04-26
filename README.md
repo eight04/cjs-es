@@ -143,6 +143,10 @@ The result object has following members:
 Changelog
 ---------
 
+* 0.2.1 (Apr 26, 2018)
+
+  - Add: transform top-level require call.
+
 * 0.2.0 (Apr 26, 2018)
 
   - Change: don't suppress parse error.
