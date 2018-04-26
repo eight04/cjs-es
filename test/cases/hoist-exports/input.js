@@ -1,0 +1,3 @@
+function test() {
+  exports.foo();
+}

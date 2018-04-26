@@ -4,23 +4,43 @@ const fs = require("fs");
 const {parse} = require("acorn");
 const {transform} = require("..");
 
-describe("cases", () => {
-  for (const dir of fs.readdirSync(__dirname + "/cases")) {
-    it(dir, () => {
-      const readFile = filename => {
-        try {
-          return fs.readFileSync(`${__dirname}/cases/${dir}/${filename}`, "utf8").replace(/\r/g, "");
-        } catch (err) {
-          // pass
-        }
-      };
-      const options = JSON.parse(readFile("options.json") || "{}");
-      const input = readFile("input.js");
-      const output = readFile("output.js");
-      
-      const result = transform(Object.assign({code: input, parse}, options));
-      assert.equal(result.code, output);
-      assert.equal(result.isTouched, input !== output);
-    });
+const cases = [
+  {
+    name: "top-level only",
+    test: dir => !dir.startsWith("hoist") && !dir.startsWith("dynamic"),
+    options: {}
+  }, {
+    name: "top-level + hoist + dynamic",
+    test: () => true,
+    options: {dynamicImport: true, hoist: true}
   }
-});
+];
+
+for (const c of cases) {
+  describe(c.name, () => {
+    for (const dir of fs.readdirSync(__dirname + "/cases")) {
+      if (!c.test(dir)) {
+        continue;
+      }
+      it(dir, () => {
+        const readFile = filename => {
+          try {
+            return fs.readFileSync(`${__dirname}/cases/${dir}/${filename}`, "utf8").replace(/\r/g, "");
+          } catch (err) {
+            // pass
+          }
+        };
+        const options = JSON.parse(readFile("options.json") || "{}");
+        const input = readFile("input.js");
+        const output = readFile("output.js");
+        
+        const result = transform(Object.assign({
+          code: input,
+          parse
+        }, c.options, options));
+        assert.equal(result.code, output);
+        assert.equal(result.isTouched, input !== output);
+      });
+    }
+  });
+}
