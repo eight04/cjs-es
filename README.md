@@ -8,16 +8,17 @@ Transform CommonJS module into ES module.
 Features
 --------
 
-* Lightweight.
 * Prefer named import/export when possible.
-* Only support the syntax that is interchangeable between mjs and js.
-* Convert in-place. It only converts:
+* Support the syntax that is interchangeable between mjs and js.
+* Convert in-place. By default, it only converts:
 
   - top-level `require` declaration (`const foo = require("foo")`),
   - top-level `module.exports`, `exports` assignment (`module.exports = ...`/`const foo = exports.foo = ...`),
-  - dynamic-require expression (`Promise.resolve(require("foo"))`).
   
-  There are more samples under `test/cases` folder.
+* Hoist the `require`, `exports` statements that is not top-level.
+* Transform dynamic imports. (`Promise.resolve(require("foo"))`)
+
+There are more samples under `test/cases` folder.
 
 Usage
 -----
@@ -113,6 +114,45 @@ export default {
 };
 ```
 
+Hoist
+-----
+
+If the `require`/`module`/`exports` statement are not at the top level, they would be hoisted:
+
+```js
+if (foo) {
+  require("foo").foo();
+}
+```
+
+Result:
+
+```js
+import * as _require_foo_ from "foo";
+if (foo) {
+  _require_foo_.foo();
+}
+```
+
+Dynamic import
+--------------
+
+ES6 lazy load `import("...")` is async and return a promise. It is interchangeable with `Promise.resolve(require("..."))` in CommonJS:
+
+```js
+module.exports = () => {
+  return Promise.resolve(require("foo"));
+};
+```
+
+Result:
+
+```js
+export default () => {
+  return import("foo");
+};
+```
+
 API reference
 -------------
 
@@ -134,6 +174,10 @@ This module exports following members.
   - `moduleId`: `string`. The module ID of `require("module-id")`.
 
 * `exportStyle?`: `string` or `function -> string`. The result must be `"named"` or `"default"`. Default: `"named"`
+* `hoist?`: `boolean`. If true then turn on hoist transformer. Default: `false`.
+* `dynamicImport?`: `boolean`. If true then turn on dynamic import transformer. Default: `false`.
+
+If `hoist` and `dynamicImport` are both `false`, the transformer would only traverse top-level nodes of the AST.
 
 The result object has following members:
 
@@ -143,6 +187,12 @@ The result object has following members:
 
 Changelog
 ---------
+
+* 0.3.0 (Apr 27, 2018)
+
+  - Merge cjs-hoist.
+  - Add: `hoist` option.
+  - Add: `dynamicImport` option.
 
 * 0.2.2 (Apr 26, 2018)
 
