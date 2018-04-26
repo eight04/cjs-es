@@ -318,6 +318,14 @@ function transformImportDynamic({s, node}) {
   );
 }
 
+function transformImportBare({s, node}) {
+  const required = getRequireInfo(node);
+  if (required) {
+    s.overwrite(node.start, required.start, "import ");
+    s.remove(required.end, node.end);
+  }
+}
+
 function makeCallable(func) {
   if (typeof func === "function") {
     return func;
@@ -340,6 +348,9 @@ function transform({parse, code, sourceMap = false, importStyle = "named", expor
       node.topLevel = true;
     } else if (node.type === "CallExpression") {
       transformImportDynamic({s, node});
+      if (parent.topLevel) {
+        transformImportBare({s, node});
+      }
     }
   }});
   return {
