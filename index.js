@@ -1,156 +1,15 @@
 const {walk} = require("estree-walker");
 const MagicString = require("magic-string");
-
-function getExportInfo(node) {
-  if (node.left.type === "MemberExpression") {
-    if (node.left.object.name === "module" && node.left.property.name === "exports") {
-      return {
-        type: "default",
-        left: node.left,
-        value: node.right
-      };
-    }
-    if (
-      node.left.object.type === "MemberExpression" &&
-      node.left.object.object.name === "module" &&
-      node.left.object.property.name === "exports"
-    ) {
-      return {
-        type: "named",
-        name: node.left.property.name,
-        left: node.left,
-        value: node.right
-      };
-    }
-    if (node.left.object.name === "exports") {
-      return {
-        type: "named",
-        name: node.left.property.name,
-        left: node.left,
-        value: node.right
-      };
-    }
-  }
-}
-
-function getDeclareExport(node) {
-  if (node.declarations.length !== 1) {
-    return;
-  }
-  const dec = node.declarations[0];
-  if (dec.id.type !== "Identifier" || dec.init.type !== "AssignmentExpression") {
-    return;
-  }
-  const exported = getExportInfo(dec.init);
-  if (!exported) {
-    return;
-  }
-  if (exported.name === dec.id.name) {
-    return {
-      kind: node.kind,
-      exported
-    };
-  }
-}
-
-function getDeclareImport(node) {
-  if (node.declarations.length !== 1) {
-    return;
-  }
-  const dec = node.declarations[0];
-  if (dec.init.type !== "CallExpression") {
-    return;
-  }
-  const required = getRequireInfo(dec.init);
-  if (!required) {
-    return;
-  }
-  let object;
-  if (dec.id.type === "ObjectPattern") {
-    object = getObjectInfo(dec.id, true);
-    if (!object) {
-      return;
-    }
-  } else if (dec.id.type !== "Identifier") {
-    return;
-  }
-  return {
-    object,
-    left: dec.id,
-    right: dec.init,
-    required
-  };
-}
-
-function getDynamicImport(node) {
-  if (
-    node.callee.type !== "MemberExpression" ||
-    node.callee.object.name !== "Promise" ||
-    node.callee.property.name !== "resolve"
-  ) {
-    return;
-  }
-  if (
-    node.arguments.length !== 1 ||
-    node.arguments[0].type !== "CallExpression"
-  ) {
-    return;
-  }
-  const required = getRequireInfo(node.arguments[0]);
-  if (required) {
-    return {
-      start: node.start,
-      end: node.end,
-      required
-    };
-  }
-}
-
-function getRequireInfo(node) {
-  if (
-    node.callee.name === "require" &&
-    node.arguments.length === 1 &&
-    node.arguments[0].type === "Literal"
-  ) {
-    return node.arguments[0];
-  }
-}
-
-function getObjectInfo(node, checkValueType) {
-  if (!node.properties.length) {
-    return;
-  }
-  const properties = [];
-  for (const prop of node.properties) {
-    if (prop.key.type !== "Identifier") {
-      return;
-    }
-    if (checkValueType && prop.value.type !== "Identifier") {
-      return;
-    }
-    if (prop.method) {
-      properties.push({
-        name: prop.key.name,
-        method: true,
-        generator: prop.value.generator,
-        key: prop.key,
-        value: prop.value
-      });
-    } else {
-      // note that if prop.shorthand == true then prop.key == prop.value
-      properties.push({
-        name: prop.key.name,
-        key: prop.key,
-        value: prop.value
-      });
-    }
-  }
-  return {
-    start: node.start,
-    end: node.end,
-    properties
-  };
-}
+const {createTopLevelAnalyzer, createScopeAnalyzer} = require("./lib/util");
+const {
+  createTopLevelExportTransformer,
+  createTopLevelImportTransformer
+} = require("./lib/top-level");
+const {createDynamicImportTransformer} = require("./lib/dynamic");
+const {
+  createHoistExportTransformer,
+  createHoistImportTransformer
+} = require("./lib/hoist");
 
 function makeCallable(func) {
   if (typeof func === "function") {
@@ -159,232 +18,91 @@ function makeCallable(func) {
   return () => func;
 }
 
-function createExportTransformer({s, exportStyle, code}) {
-  let isTouched = false;
+function transform({
+  parse,
+  code,
+  sourceMap = false,
+  importStyle = "named",
+  exportStyle = "named",
+  hoist = false,
+  dynamicImport = false
+} = {}) {
   
-  return {
-    transformExportAssign,
-    transformExportDeclare,
-    isTouched: () => isTouched
-  };
-  
-  function transformExportAssign(node) {
-    const exported = getExportInfo(node);
-    if (!exported) {
-      return;
-    }
-    if (exported.type === "named") {
-      if (exported.value.type === "Identifier") {
-        // exports.foo = foo
-        s.overwrite(
-          node.start,
-          exported.value.start,
-          "export {"
-        );
-        s.appendLeft(
-          exported.value.end,
-          exported.value.name === exported.name ?
-            "}" : ` as ${exported.name}}`
-        );
-      } else {
-        // exports.foo = "not an identifier"
-        s.overwrite(
-          node.start,
-          exported.left.end,
-          `const _export_${exported.name}_`
-        );
-        s.appendLeft(node.end, `;\nexport {_export_${exported.name}_ as ${exported.name}}`);
-      }
-    } else {
-      const rx = /.*?\/\/.*\bdefault\b/y;
-      rx.lastIndex = node.start;
-      if (exported.value.type !== "ObjectExpression" || exportStyle() === "default" || rx.test(code)) {
-        // module.exports = ...
-        s.overwrite(
-          node.start,
-          exported.value.start,
-          "export default "
-        );
-      } else {
-        // module.exports = {...}
-        const objMap = getObjectInfo(exported.value);
-        if (objMap) {
-          const overwrite = (start, property, newLine, semi) => {
-            if (property.value.type === "Identifier") {
-              // foo: bar
-              s.overwrite(start, property.value.start, `${newLine ? "\n" : ""}export {`);
-              s.appendLeft(
-                property.value.end,
-                `${
-                  property.value.name === property.name ?
-                    "" : ` as ${property.name}`
-                }}${semi ? ";" : ""}`
-              );
-            } else {
-              // foo: "not an identifier"
-              s.overwrite(
-                start,
-                property.value.start,
-                `${newLine ? "\n" : ""}const _export_${property.name}_ = ${
-                  property.method ?
-                    `function${property.generator ? "*" : ""} ` : ""
-                }`
-              );
-              s.appendLeft(
-                property.value.end,
-                `;\nexport {_export_${property.name}_ as ${property.name}}${semi ? ";" : ""}`
-              );
-            }
-          };
-          // module.exports = { ...
-          let start = node.start;
-          for (let i = 0; i < objMap.properties.length; i++) {
-            overwrite(
-              start,
-              objMap.properties[i],
-              i > 0,
-              i < objMap.properties.length - 1
-            );
-            start = objMap.properties[i].value.end;
-          }
-          // , ... }
-          s.remove(start, node.end);
-        }
-      }
-    }
-    isTouched = true;
-  }
-
-  function transformExportDeclare(node) {
-    const declared = getDeclareExport(node);
-    if (!declared) {
-      return;
-    }
-    // const foo = exports.foo = ...
-    s.overwrite(
-      node.start,
-      declared.exported.left.end,
-      `export ${declared.kind} ${declared.exported.name}`
-    );
-    isTouched = true;
-  }
-}
-
-function createImportTransformer({s, importStyle, code}) {
-  let isTouched = false;
-  
-  return {
-    transformImportBare,
-    transformImportDynamic,
-    transformImportDeclare,
-    isTouched: () => isTouched
-  };
-  
-  function transformImportDeclare(node) {
-    const declared = getDeclareImport(node);
-    if (!declared) {
-      return;
-    }
-    if (!declared.object) {
-      // const foo = require("foo")
-      const rx = /.*?\/\/.*\bdefault\b/y;
-      rx.lastIndex = declared.required.end;
-      if (rx.test(code) || importStyle(declared.required.value) === "default") {
-        // import default
-        s.overwrite(
-          node.start,
-          declared.left.start,
-          "import "
-        );
-      } else {
-        // import named
-        s.overwrite(
-          node.start,
-          declared.left.start,
-          "import * as "
-        );
-      }
-    } else {
-      // const {foo, bar}
-      s.overwrite(
-        node.start,
-        declared.object.start,
-        "import "
-      );
-      // foo: bar
-      for (const prop of declared.object.properties) {
-        if (prop.key.end < prop.value.start) {
-          s.overwrite(
-            prop.key.end,
-            prop.value.start,
-            " as "
-          );
-        }
-      }
-    }
-    s.overwrite(
-      declared.left.end,
-      declared.required.start,
-      " from "
-    );
-    s.remove(declared.required.end, declared.right.end);
-    isTouched = true;
-  }
-
-  function transformImportDynamic(node) {
-    const imported = getDynamicImport(node);
-    if (!imported) {
-      return;
-    }
-    s.overwrite(
-      imported.start,
-      imported.required.start,
-      "import("
-    );
-    s.overwrite(
-      imported.required.end,
-      imported.end,
-      ")"
-    );
-    isTouched = true;
-  }
-  
-  function transformImportBare(node) {
-    const required = getRequireInfo(node);
-    if (required) {
-      s.overwrite(node.start, required.start, "import ");
-      s.remove(required.end, node.end);
-      isTouched = true;
-    }
-  }
-}
-
-function transform({parse, code, sourceMap = false, importStyle = "named", exportStyle = "named"} = {}) {
   importStyle = makeCallable(importStyle);
   exportStyle = makeCallable(exportStyle);
   
   const s = new MagicString(code);
-  const importTransformer = createImportTransformer({code, s, importStyle});
-  const exportTransformer = createExportTransformer({code, s, exportStyle});
-  
   const ast = parse(code);
-  walk(ast, {enter(node, parent) {
-    if (node.type === "VariableDeclaration" && parent.type === "Program") {
-      importTransformer.transformImportDeclare(node);
-      exportTransformer.transformExportDeclare(node);
-    } else if (node.type === "AssignmentExpression" && parent.topLevel) {
-      exportTransformer.transformExportAssign(node);
-    } else if (node.type === "ExpressionStatement" && parent.type === "Program") {
-      node.topLevel = true;
-    } else if (node.type === "CallExpression") {
-      importTransformer.transformImportDynamic(node);
-      if (parent.topLevel) {
-        importTransformer.transformImportBare(node);
+  const topLevel = createTopLevelAnalyzer();
+  const scope = hoist || dynamicImport ? createScopeAnalyzer(ast) : null;
+  
+  const topLevelImportTransformer = createTopLevelImportTransformer({code, s, importStyle});
+  const topLevelExportTransformer = createTopLevelExportTransformer({code, s, exportStyle});
+  
+  const dynamicImportTransformer = dynamicImport ? createDynamicImportTransformer({s, scope}) : null;
+  
+  const hoistImportTransformer = hoist ?
+    createHoistImportTransformer({s, topLevel, scope, code}) : null;
+  const hoistExportTransformer = hoist ?
+    createHoistExportTransformer({s, topLevel, scope}) : null;
+  
+  walk(ast, {
+    enter(node, parent) {
+      if (node.shouldSkip) {
+        this.skip();
+      }
+      topLevel.enter(node, parent);
+      if (scope) {
+        scope.enter(node);
+      }
+      if (node.type === "VariableDeclaration" && topLevel.isTop()) {
+        topLevelImportTransformer.transformImportDeclare(node);
+        topLevelExportTransformer.transformExportDeclare(node);
+      } else if (node.type === "AssignmentExpression" && topLevel.isTopChild()) {
+        if (!hoistExportTransformer || !hoistExportTransformer.isModuleDeclared()) {
+          topLevelExportTransformer.transformExportAssign(node);
+        }
+      } else if (node.type === "CallExpression") {
+        if (dynamicImport) {
+          dynamicImportTransformer.transform(node);
+        }
+        if (topLevel.isTopChild()) {
+          topLevelImportTransformer.transformImportBare(node);
+        }
+        if (hoist) {
+          hoistImportTransformer.transform(node);
+        }
+      } else if (node.type === "Identifier" && hoist) {
+        hoistExportTransformer.transformExport(node, parent);
+        hoistExportTransformer.transformModule(node, parent);
+      }
+      if (!dynamicImport && !hoist && !topLevel.isTop()) {
+        this.skip();
+        if (scope) {
+          scope.leave(node);
+        }
+      }
+    },
+    leave(node) {
+      if (scope) {
+        scope.leave(node);
       }
     }
-  }});
+  });
   
-  const isTouched = importTransformer.isTouched() || exportTransformer.isTouched();
+  if (hoist) {
+    hoistExportTransformer.writeDeclare();
+    hoistExportTransformer.writeExport();
+  }
+  
+  const isTouched =
+    topLevelImportTransformer.isTouched() ||
+    topLevelExportTransformer.isTouched() ||
+    (hoist && (
+      hoistImportTransformer.isTouched() ||
+      hoistExportTransformer.isTouched()
+    )) ||
+    dynamicImport && dynamicImportTransformer.isTouched();
   
   return {
     code: isTouched ? s.toString() : code,

@@ -18,7 +18,12 @@ describe("cases", () => {
       const input = readFile("input.js");
       const output = readFile("output.js");
       
-      const result = transform(Object.assign({code: input, parse}, options));
+      const result = transform(Object.assign({
+        code: input,
+        parse,
+        dynamicImport: true,
+        hoist: true
+      }, options));
       assert.equal(result.code, output);
       assert.equal(result.isTouched, input !== output);
     });
