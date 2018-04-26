@@ -152,180 +152,6 @@ function getObjectInfo(node, checkValueType) {
   };
 }
 
-function transformExportAssign({s, node, exportStyle, code}) {
-  const exported = getExportInfo(node);
-  if (!exported) {
-    return;
-  }
-  if (exported.type === "named") {
-    if (exported.value.type === "Identifier") {
-      // exports.foo = foo
-      s.overwrite(
-        node.start,
-        exported.value.start,
-        "export {"
-      );
-      s.appendLeft(
-        exported.value.end,
-        exported.value.name === exported.name ?
-          "}" : ` as ${exported.name}}`
-      );
-    } else {
-      // exports.foo = "not an identifier"
-      s.overwrite(
-        node.start,
-        exported.left.end,
-        `const _export_${exported.name}_`
-      );
-      s.appendLeft(node.end, `;\nexport {_export_${exported.name}_ as ${exported.name}}`);
-    }
-  } else {
-    const rx = /.*?\/\/.*\bdefault\b/y;
-    rx.lastIndex = node.start;
-    if (exported.value.type !== "ObjectExpression" || exportStyle() === "default" || rx.test(code)) {
-      // module.exports = ...
-      s.overwrite(
-        node.start,
-        exported.value.start,
-        "export default "
-      );
-    } else {
-      // module.exports = {...}
-      const objMap = getObjectInfo(exported.value);
-      if (objMap) {
-        const overwrite = (start, property, newLine, semi) => {
-          if (property.value.type === "Identifier") {
-            // foo: bar
-            s.overwrite(start, property.value.start, `${newLine ? "\n" : ""}export {`);
-            s.appendLeft(
-              property.value.end,
-              `${
-                property.value.name === property.name ?
-                  "" : ` as ${property.name}`
-              }}${semi ? ";" : ""}`
-            );
-          } else {
-            // foo: "not an identifier"
-            s.overwrite(
-              start,
-              property.value.start,
-              `${newLine ? "\n" : ""}const _export_${property.name}_ = ${
-                property.method ?
-                  `function${property.generator ? "*" : ""} ` : ""
-              }`
-            );
-            s.appendLeft(
-              property.value.end,
-              `;\nexport {_export_${property.name}_ as ${property.name}}${semi ? ";" : ""}`
-            );
-          }
-        };
-        // module.exports = { ...
-        let start = node.start;
-        for (let i = 0; i < objMap.properties.length; i++) {
-          overwrite(
-            start,
-            objMap.properties[i],
-            i > 0,
-            i < objMap.properties.length - 1
-          );
-          start = objMap.properties[i].value.end;
-        }
-        // , ... }
-        s.remove(start, node.end);
-      }
-    }
-  }
-}
-
-function transformExportDeclare({s, node}) {
-  const declared = getDeclareExport(node);
-  if (!declared) {
-    return;
-  }
-  // const foo = exports.foo = ...
-  s.overwrite(
-    node.start,
-    declared.exported.left.end,
-    `export ${declared.kind} ${declared.exported.name}`
-  );
-}
-
-function transformImportDeclare({s, node, code, importStyle}) {
-  const declared = getDeclareImport(node);
-  if (!declared) {
-    return;
-  }
-  if (!declared.object) {
-    // const foo = require("foo")
-    const rx = /.*?\/\/.*\bdefault\b/y;
-    rx.lastIndex = declared.required.end;
-    if (rx.test(code) || importStyle(declared.required.value) === "default") {
-      // import default
-      s.overwrite(
-        node.start,
-        declared.left.start,
-        "import "
-      );
-    } else {
-      // import named
-      s.overwrite(
-        node.start,
-        declared.left.start,
-        "import * as "
-      );
-    }
-  } else {
-    // const {foo, bar}
-    s.overwrite(
-      node.start,
-      declared.object.start,
-      "import "
-    );
-    // foo: bar
-    for (const prop of declared.object.properties) {
-      if (prop.key.end < prop.value.start) {
-        s.overwrite(
-          prop.key.end,
-          prop.value.start,
-          " as "
-        );
-      }
-    }
-  }
-  s.overwrite(
-    declared.left.end,
-    declared.required.start,
-    " from "
-  );
-  s.remove(declared.required.end, declared.right.end);
-}
-
-function transformImportDynamic({s, node}) {
-  const imported = getDynamicImport(node);
-  if (!imported) {
-    return;
-  }
-  s.overwrite(
-    imported.start,
-    imported.required.start,
-    "import("
-  );
-  s.overwrite(
-    imported.required.end,
-    imported.end,
-    ")"
-  );
-}
-
-function transformImportBare({s, node}) {
-  const required = getRequireInfo(node);
-  if (required) {
-    s.overwrite(node.start, required.start, "import ");
-    s.remove(required.end, node.end);
-  }
-}
-
 function makeCallable(func) {
   if (typeof func === "function") {
     return func;
@@ -333,29 +159,237 @@ function makeCallable(func) {
   return () => func;
 }
 
+function createExportTransformer({s, exportStyle, code}) {
+  let isTouched = false;
+  
+  return {
+    transformExportAssign,
+    transformExportDeclare,
+    isTouched: () => isTouched
+  };
+  
+  function transformExportAssign(node) {
+    const exported = getExportInfo(node);
+    if (!exported) {
+      return;
+    }
+    if (exported.type === "named") {
+      if (exported.value.type === "Identifier") {
+        // exports.foo = foo
+        s.overwrite(
+          node.start,
+          exported.value.start,
+          "export {"
+        );
+        s.appendLeft(
+          exported.value.end,
+          exported.value.name === exported.name ?
+            "}" : ` as ${exported.name}}`
+        );
+      } else {
+        // exports.foo = "not an identifier"
+        s.overwrite(
+          node.start,
+          exported.left.end,
+          `const _export_${exported.name}_`
+        );
+        s.appendLeft(node.end, `;\nexport {_export_${exported.name}_ as ${exported.name}}`);
+      }
+    } else {
+      const rx = /.*?\/\/.*\bdefault\b/y;
+      rx.lastIndex = node.start;
+      if (exported.value.type !== "ObjectExpression" || exportStyle() === "default" || rx.test(code)) {
+        // module.exports = ...
+        s.overwrite(
+          node.start,
+          exported.value.start,
+          "export default "
+        );
+      } else {
+        // module.exports = {...}
+        const objMap = getObjectInfo(exported.value);
+        if (objMap) {
+          const overwrite = (start, property, newLine, semi) => {
+            if (property.value.type === "Identifier") {
+              // foo: bar
+              s.overwrite(start, property.value.start, `${newLine ? "\n" : ""}export {`);
+              s.appendLeft(
+                property.value.end,
+                `${
+                  property.value.name === property.name ?
+                    "" : ` as ${property.name}`
+                }}${semi ? ";" : ""}`
+              );
+            } else {
+              // foo: "not an identifier"
+              s.overwrite(
+                start,
+                property.value.start,
+                `${newLine ? "\n" : ""}const _export_${property.name}_ = ${
+                  property.method ?
+                    `function${property.generator ? "*" : ""} ` : ""
+                }`
+              );
+              s.appendLeft(
+                property.value.end,
+                `;\nexport {_export_${property.name}_ as ${property.name}}${semi ? ";" : ""}`
+              );
+            }
+          };
+          // module.exports = { ...
+          let start = node.start;
+          for (let i = 0; i < objMap.properties.length; i++) {
+            overwrite(
+              start,
+              objMap.properties[i],
+              i > 0,
+              i < objMap.properties.length - 1
+            );
+            start = objMap.properties[i].value.end;
+          }
+          // , ... }
+          s.remove(start, node.end);
+        }
+      }
+    }
+    isTouched = true;
+  }
+
+  function transformExportDeclare(node) {
+    const declared = getDeclareExport(node);
+    if (!declared) {
+      return;
+    }
+    // const foo = exports.foo = ...
+    s.overwrite(
+      node.start,
+      declared.exported.left.end,
+      `export ${declared.kind} ${declared.exported.name}`
+    );
+    isTouched = true;
+  }
+}
+
+function createImportTransformer({s, importStyle, code}) {
+  let isTouched = false;
+  
+  return {
+    transformImportBare,
+    transformImportDynamic,
+    transformImportDeclare,
+    isTouched: () => isTouched
+  };
+  
+  function transformImportDeclare(node) {
+    const declared = getDeclareImport(node);
+    if (!declared) {
+      return;
+    }
+    if (!declared.object) {
+      // const foo = require("foo")
+      const rx = /.*?\/\/.*\bdefault\b/y;
+      rx.lastIndex = declared.required.end;
+      if (rx.test(code) || importStyle(declared.required.value) === "default") {
+        // import default
+        s.overwrite(
+          node.start,
+          declared.left.start,
+          "import "
+        );
+      } else {
+        // import named
+        s.overwrite(
+          node.start,
+          declared.left.start,
+          "import * as "
+        );
+      }
+    } else {
+      // const {foo, bar}
+      s.overwrite(
+        node.start,
+        declared.object.start,
+        "import "
+      );
+      // foo: bar
+      for (const prop of declared.object.properties) {
+        if (prop.key.end < prop.value.start) {
+          s.overwrite(
+            prop.key.end,
+            prop.value.start,
+            " as "
+          );
+        }
+      }
+    }
+    s.overwrite(
+      declared.left.end,
+      declared.required.start,
+      " from "
+    );
+    s.remove(declared.required.end, declared.right.end);
+    isTouched = true;
+  }
+
+  function transformImportDynamic(node) {
+    const imported = getDynamicImport(node);
+    if (!imported) {
+      return;
+    }
+    s.overwrite(
+      imported.start,
+      imported.required.start,
+      "import("
+    );
+    s.overwrite(
+      imported.required.end,
+      imported.end,
+      ")"
+    );
+    isTouched = true;
+  }
+  
+  function transformImportBare(node) {
+    const required = getRequireInfo(node);
+    if (required) {
+      s.overwrite(node.start, required.start, "import ");
+      s.remove(required.end, node.end);
+      isTouched = true;
+    }
+  }
+}
+
 function transform({parse, code, sourceMap = false, importStyle = "named", exportStyle = "named"} = {}) {
   importStyle = makeCallable(importStyle);
   exportStyle = makeCallable(exportStyle);
+  
   const s = new MagicString(code);
+  const importTransformer = createImportTransformer({code, s, importStyle});
+  const exportTransformer = createExportTransformer({code, s, exportStyle});
+  
   const ast = parse(code);
   walk(ast, {enter(node, parent) {
     if (node.type === "VariableDeclaration" && parent.type === "Program") {
-      transformImportDeclare({s, node, importStyle, code});
-      transformExportDeclare({s, node});
+      importTransformer.transformImportDeclare(node);
+      exportTransformer.transformExportDeclare(node);
     } else if (node.type === "AssignmentExpression" && parent.topLevel) {
-      transformExportAssign({s, node, exportStyle, code});
+      exportTransformer.transformExportAssign(node);
     } else if (node.type === "ExpressionStatement" && parent.type === "Program") {
       node.topLevel = true;
     } else if (node.type === "CallExpression") {
-      transformImportDynamic({s, node});
+      importTransformer.transformImportDynamic(node);
       if (parent.topLevel) {
-        transformImportBare({s, node});
+        importTransformer.transformImportBare(node);
       }
     }
   }});
+  
+  const isTouched = importTransformer.isTouched() || exportTransformer.isTouched();
+  
   return {
-    code: s.toString(),
-    map: sourceMap && s.generateMap()
+    code: isTouched ? s.toString() : code,
+    map: sourceMap && s.generateMap(),
+    isTouched
   };
 }
 
