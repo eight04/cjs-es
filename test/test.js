@@ -18,8 +18,9 @@ describe("cases", () => {
       const input = readFile("input.js");
       const output = readFile("output.js");
       
-      const actual = transform(Object.assign({code: input, parse}, options)).code;
-      assert.equal(actual, output);
+      const result = transform(Object.assign({code: input, parse}, options));
+      assert.equal(result.code, output);
+      assert.equal(result.isTouched, input !== output);
     });
   }
 });
