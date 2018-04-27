@@ -45,8 +45,8 @@ for (const c of cases) {
             code: input,
             parse
           }, c.options, options));
-        } catch (err) {
-          // pass
+        } catch (_err) {
+          err = _err;
         }
         if (result) {
           assert.equal(result.code, output);

@@ -36,7 +36,7 @@ function transform({
   const topLevel = createTopLevelAnalyzer();
   const scope = hoist || dynamicImport ? createScopeAnalyzer(ast) : null;
   
-  const topLevelImportTransformer = createTopLevelImportTransformer({code, s, importStyle});
+  const topLevelImportTransformer = createTopLevelImportTransformer({code, s, importStyle, hoist});
   const topLevelExportTransformer = createTopLevelExportTransformer({code, s, exportStyle});
   
   const dynamicImportTransformer = dynamicImport ? createDynamicImportTransformer({s, scope}) : null;
