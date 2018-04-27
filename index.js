@@ -50,6 +50,7 @@ function transform({
     enter(node, parent) {
       if (node.shouldSkip) {
         this.skip();
+        return;
       }
       topLevel.enter(node, parent);
       if (scope) {
@@ -57,9 +58,11 @@ function transform({
       }
       if (node.type === "VariableDeclaration" && topLevel.isTop()) {
         topLevelImportTransformer.transformImportDeclare(node);
-        topLevelExportTransformer.transformExportDeclare(node);
+        if (!hoist || !hoistExportTransformer.shouldHoist()) {
+          topLevelExportTransformer.transformExportDeclare(node);
+        }
       } else if (node.type === "AssignmentExpression" && topLevel.isTopChild()) {
-        if (!hoistExportTransformer || !hoistExportTransformer.isModuleDeclared()) {
+        if (!hoist || !hoistExportTransformer.shouldHoist()) {
           topLevelExportTransformer.transformExportAssign(node);
         }
       } else if (node.type === "CallExpression") {
@@ -93,6 +96,14 @@ function transform({
   if (hoist) {
     hoistExportTransformer.writeDeclare();
     hoistExportTransformer.writeExport();
+  }
+  if (!hoist || !hoistExportTransformer.isTouched()) {
+    topLevelExportTransformer.writeExport();
+  }
+  if (hoist) {
+    hoistImportTransformer.write({
+      excludeTopLevel: topLevelExportTransformer.isTouched()
+    });
   }
   
   const isTouched =

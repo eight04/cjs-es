@@ -34,8 +34,8 @@ for (const c of cases) {
             // pass
           }
         };
-        const options = readFile("options.json");
-        const error = readFile("error.json");
+        const options = readFile("options.json") || {};
+        const error = readFile("error.json") || {};
         const input = readFile("input.js");
         const output = readFile("output.js");
         
