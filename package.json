@@ -11,6 +11,7 @@
     "transform"
   ],
   "main": "index.js",
+  "files": ["lib"],
   "scripts": {
     "test": "eslint **/*.js && mocha",
     "preversion": "npm test",
