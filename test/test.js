@@ -35,7 +35,7 @@ for (const c of cases) {
           }
         };
         const options = readFile("options.json") || {};
-        const error = readFile("error.json") || {};
+        const error = readFile("error.json");
         const input = readFile("input.js");
         const output = readFile("output.js");
         
@@ -46,6 +46,9 @@ for (const c of cases) {
             parse
           }, c.options, options));
         } catch (_err) {
+          if (!error) {
+            throw _err;
+          }
           err = _err;
         }
         if (result) {
