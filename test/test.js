@@ -25,21 +25,35 @@ for (const c of cases) {
       it(dir, () => {
         const readFile = filename => {
           try {
-            return fs.readFileSync(`${__dirname}/cases/${dir}/${filename}`, "utf8").replace(/\r/g, "");
+            const content = fs.readFileSync(`${__dirname}/cases/${dir}/${filename}`, "utf8").replace(/\r/g, "");
+            if (filename.endsWith(".json")) {
+              return JSON.parse(content);
+            }
+            return content;
           } catch (err) {
             // pass
           }
         };
-        const options = JSON.parse(readFile("options.json") || "{}");
+        const options = readFile("options.json");
+        const error = readFile("error.json");
         const input = readFile("input.js");
         const output = readFile("output.js");
         
-        const result = transform(Object.assign({
-          code: input,
-          parse
-        }, c.options, options));
-        assert.equal(result.code, output);
-        assert.equal(result.isTouched, input !== output);
+        let result, err;
+        try {
+          result = transform(Object.assign({
+            code: input,
+            parse
+          }, c.options, options));
+        } catch (err) {
+          // pass
+        }
+        if (result) {
+          assert.equal(result.code, output);
+          assert.equal(result.isTouched, input !== output);
+        } else {
+          assert.equal(err.message, error.message);
+        }
       });
     }
   });
