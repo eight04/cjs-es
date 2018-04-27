@@ -188,6 +188,10 @@ The result object has following members:
 Changelog
 ---------
 
+* 0.3.1 (Apr 28, 2018)
+
+  - Fix: error while binding default export to object pattern.
+
 * 0.3.0 (Apr 27, 2018)
 
   - Merge cjs-hoist.
