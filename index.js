@@ -21,6 +21,7 @@ function makeCallable(func) {
 function transform({
   parse,
   code,
+  ast,
   sourceMap = false,
   importStyle = "named",
   exportStyle = "named",
@@ -31,8 +32,11 @@ function transform({
   importStyle = makeCallable(importStyle);
   exportStyle = makeCallable(exportStyle);
   
+  if (!ast) {
+    ast = parse(code);
+  }
+  
   const s = new MagicString(code);
-  const ast = parse(code);
   const topLevel = createTopLevelAnalyzer();
   const scope = hoist || dynamicImport ? createScopeAnalyzer(ast) : null;
   
