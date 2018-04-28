@@ -47,53 +47,64 @@ function transform({
     createHoistImportTransformer({s, topLevel, scope, importStyle, code}) : null;
   const hoistExportTransformer = hoist ?
     createHoistExportTransformer({s, topLevel, scope, exportStyle}) : null;
-  
-  walk(ast, {
-    enter(node, parent) {
-      if (node.shouldSkip) {
-        this.skip();
-        return;
-      }
-      topLevel.enter(node, parent);
-      if (scope) {
-        scope.enter(node);
-      }
-      if (node.type === "VariableDeclaration" && topLevel.isTop()) {
-        topLevelImportTransformer.transformImportDeclare(node);
-        if (!hoist || !hoistExportTransformer.shouldHoist()) {
-          topLevelExportTransformer.transformExportDeclare(node);
+    
+  function doWalk() {
+    walk(ast, {
+      enter(node, parent) {
+        if (node.shouldSkip) {
+          this.skip();
+          return;
         }
-      } else if (node.type === "AssignmentExpression" && topLevel.isTopChild()) {
-        if (!hoist || !hoistExportTransformer.shouldHoist()) {
-          topLevelExportTransformer.transformExportAssign(node);
+        topLevel.enter(node, parent);
+        if (scope) {
+          scope.enter(node);
         }
-      } else if (node.type === "CallExpression") {
-        if (dynamicImport) {
-          dynamicImportTransformer.transform(node);
+        if (node.type === "VariableDeclaration" && topLevel.isTop()) {
+          topLevelImportTransformer.transformImportDeclare(node);
+          if (!hoist || !hoistExportTransformer.shouldHoist()) {
+            topLevelExportTransformer.transformExportDeclare(node);
+          }
+        } else if (node.type === "AssignmentExpression" && topLevel.isTopChild()) {
+          if (!hoist || !hoistExportTransformer.shouldHoist()) {
+            topLevelExportTransformer.transformExportAssign(node);
+          }
+        } else if (node.type === "CallExpression") {
+          if (dynamicImport) {
+            dynamicImportTransformer.transform(node);
+          }
+          if (topLevel.isTopChild()) {
+            topLevelImportTransformer.transformImportBare(node);
+          }
+          if (hoist) {
+            hoistImportTransformer.transform(node);
+          }
+        } else if (node.type === "Identifier" && hoist) {
+          hoistExportTransformer.transformExport(node, parent);
+          hoistExportTransformer.transformModule(node, parent);
         }
-        if (topLevel.isTopChild()) {
-          topLevelImportTransformer.transformImportBare(node);
+        if (!dynamicImport && !hoist && !topLevel.isTop()) {
+          this.skip();
+          if (scope) {
+            scope.leave(node);
+          }
         }
-        if (hoist) {
-          hoistImportTransformer.transform(node);
-        }
-      } else if (node.type === "Identifier" && hoist) {
-        hoistExportTransformer.transformExport(node, parent);
-        hoistExportTransformer.transformModule(node, parent);
-      }
-      if (!dynamicImport && !hoist && !topLevel.isTop()) {
-        this.skip();
+      },
+      leave(node) {
         if (scope) {
           scope.leave(node);
         }
       }
-    },
-    leave(node) {
-      if (scope) {
-        scope.leave(node);
-      }
+    });
+  }
+  
+  try {
+    doWalk();
+  } catch (err) {
+    if (!err.node) {
+      err.node = topLevel.getCurrent();
     }
-  });
+    throw err;
+  }
   
   if (hoist) {
     hoistExportTransformer.write();
