@@ -1,3 +1,3 @@
-let _exports_ = {};
+const _exports_ = {};
 _exports_.foo = "foo";
 export default _exports_;

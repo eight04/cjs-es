@@ -36,15 +36,17 @@ function transform({
   const topLevel = createTopLevelAnalyzer();
   const scope = hoist || dynamicImport ? createScopeAnalyzer(ast) : null;
   
-  const topLevelImportTransformer = createTopLevelImportTransformer({code, s, importStyle, hoist});
-  const topLevelExportTransformer = createTopLevelExportTransformer({code, s, importStyle, exportStyle});
+  const topLevelImportTransformer =
+    createTopLevelImportTransformer({code, s, importStyle, hoist});
+  const topLevelExportTransformer =
+    createTopLevelExportTransformer({code, s, importStyle, hoist, exportStyle});
   
   const dynamicImportTransformer = dynamicImport ? createDynamicImportTransformer({s, scope}) : null;
   
   const hoistImportTransformer = hoist ?
     createHoistImportTransformer({s, topLevel, scope, importStyle, code}) : null;
   const hoistExportTransformer = hoist ?
-    createHoistExportTransformer({s, topLevel, scope}) : null;
+    createHoistExportTransformer({s, topLevel, scope, exportStyle}) : null;
   
   walk(ast, {
     enter(node, parent) {
@@ -94,8 +96,7 @@ function transform({
   });
   
   if (hoist) {
-    hoistExportTransformer.writeDeclare();
-    hoistExportTransformer.writeExport();
+    hoistExportTransformer.write();
   }
   if (!hoist || !hoistExportTransformer.isTouched()) {
     topLevelExportTransformer.writeExport();
