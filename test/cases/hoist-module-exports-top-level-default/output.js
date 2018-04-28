@@ -1,3 +1,3 @@
-const _exports_ = {};
-_exports_.foo = "foo";
-export default _exports_;
+const _module_ = {exports: {}};
+_module_.exports.foo = "foo";
+export default _module_.exports;
