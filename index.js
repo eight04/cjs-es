@@ -11,91 +11,200 @@ const {
   createHoistImportTransformer
 } = require("./lib/hoist");
 
-function makeCallable(func) {
-  if (typeof func === "function") {
-    return func;
+function createContext(options) {
+  const context = Object.assign({}, options);
+  
+  context.importStyleCache = new Map;
+  context.isImportPreferDefault = id => {
+    if (context.importStyleCache.has(id)) {
+      return Promise.resolve(context.importStyleCache.get(id));
+    }
+    if (typeof options.importStyle === "function") {
+      return Promise.resolve(options.importStyle(id))
+        .then(style => {
+          const result = style === "default";
+          context.importStyleCache.set(id, result);
+          return result;
+        });
+    }
+    const result = options.importStyle === "default";
+    context.importStyleCache.set(id, result);
+    return Promise.resolve(result);
+  };
+  
+  context.exportStyleCache = null;
+  context.isExportPreferDefault = () => {
+    if (context.exportStyleCache != null) {
+      return Promise.resolve(context.exportStyleCache);
+    }
+    if (typeof options.exportStyle === "function") {
+      return Promise.resolve(options.exportStyle())
+        .then(style => {
+          const result = style === "default";
+          context.exportStyleCache = result;
+          return Promise.resolve(result);
+        });
+    }
+    const result = options.exportStyle === "default";
+    context.exportStyleCache = result;
+    return Promise.resolve(result);
+  };
+  
+  if (!context.ast) {
+    context.ast = options.parse(options.code);
   }
-  return () => func;
+  
+  context.s = new MagicString(options.code);
+  context.topLevel = createTopLevelAnalyzer();
+  context.scope = options.hoist || options.dynamicImport ? createScopeAnalyzer(context.ast);
+  context.walkContext = null;
+  context.skip = () => {
+    context.walkContext.skip();
+    if (context.scope) {
+      context.scope.leave(context.node);
+    }
+  };
+  context.isTouched = false;
+  
+  return context;
 }
 
-function transform({
-  parse,
-  code,
-  ast,
-  sourceMap = false,
-  importStyle = "named",
-  exportStyle = "named",
-  hoist = false,
-  dynamicImport = false
-} = {}) {
+function createAnalyzer(context) {
+  context.requireNodes = [];
+  context.moduleNodes = [];
+  context.exportsNodes = [];
+  return {analyze};
   
-  importStyle = makeCallable(importStyle);
-  exportStyle = makeCallable(exportStyle);
-  
-  if (!ast) {
-    ast = parse(code);
+  function analyzeDeclareImport(node) {
+    const declared = getDeclareImport(node);
+    if (!declared) {
+      return;
+    }
+    declared.required.node.declared = declared;
+    declared.required.node.rootPos = context.topLevel.get().start;
+    context.requireNodes.push(declared.required.node);
+    context.skip();
   }
   
-  const s = new MagicString(code);
-  const topLevel = createTopLevelAnalyzer();
-  const scope = hoist || dynamicImport ? createScopeAnalyzer(ast) : null;
+  function analyzeDeclareExport(node) {
+    const declared = getDeclareExport(node);
+    if (!declared) {
+      return;
+    }
+    declared.exported.leftMost.declared = declared;
+    declared.exported.leftMost.rootPos = context.topLevel.get().start;
+    if (declared.exported.leftMost.name === "module") {
+      context.moduleNodes.push(declared.exported.leftMost);
+    } else {
+      context.exportsNodes.push(declared.exported.leftMost);
+    }
+    declared.exported.left.shouldSkip = true;
+  }
   
-  const topLevelImportTransformer =
-    createTopLevelImportTransformer({code, s, importStyle, hoist});
-  const topLevelExportTransformer =
-    createTopLevelExportTransformer({code, s, importStyle, hoist, exportStyle});
+  function analyzeAssignExport(node) {
+    const exported = getExportInfo(node);
+    if (!exported) {
+      return;
+    }
+    exported.leftMost.exported = exported;
+    exported.leftMost.rootPos = context.topLevel.get().start;
+    if (exported.leftMost.name === "module") {
+      context.moduleNodes.push(exported.leftMost);
+    } else {
+      context.exportsNodes.push(exported.leftMost);
+    }
+    node.left.shouldSkip = true;
+  }
   
-  const dynamicImportTransformer = dynamicImport ? createDynamicImportTransformer({s, scope}) : null;
+  function analyzeDynamicImport(node) {
+    const imported = getDynamicImport(node);
+    if (!imported || context.scope.has("require")) {
+      return;
+    }
+    imported.required.node.dynamicImported = imported;
+    imported.required.node.rootPos = context.topLevel.get().start;
+    context.requireNodes.push(imported.required.node);
+    context.skip();
+  }
   
-  const hoistImportTransformer = hoist ?
-    createHoistImportTransformer({s, topLevel, scope, importStyle, code}) : null;
-  const hoistExportTransformer = hoist ?
-    createHoistExportTransformer({s, topLevel, scope, exportStyle}) : null;
-    
+  function analyzeRequire(node) {
+    const required = getRequireInfo(node);
+    if (!required) {
+      return;
+    }
+    if (context.topLevel.isTopChild()) {
+      node.topRequired = required;
+    } else {
+      node.required = required;
+    }
+    node.rootPos = context.topLevel.get().start;
+    context.requireNodes.push(node);
+    context.skip();
+  }
+  
+  function analyzeExports(node) {
+    if (node.name !== "exports") {
+      return;
+    }
+    node.rootPos = context.topLevel.get().start;
+    context.exportsNodes.push(node);
+  }
+  
+  function analyzeModule(node) {
+    if (node.name !== "module") {
+      return;
+    }
+    node.rootPos = context.topLevel.get().start;
+    context.moduleNodes.push(node);
+  }
+  
+  function analyze(node, parent) {
+    if (node.type === "VariableDeclaration" && topLevel.isTop()) {
+      analyzeDeclareImport(node);
+      analyzeDeclareExport(node);
+    } else if (node.type === "AssignmentExpression" && topLevel.isTopChild()) {
+      analyzeAssignExport(node);
+    } else if (node.type === "CallExpression") {
+      if (context.dynamicImport) {
+        analyzeDynamicImport(node);
+      }
+      analyzeRequire(node);
+    } else if (
+      node.type === "Identifier" && context.hoist &&
+      isReference(node, parent) && !context.scope.has(node.name)
+    ) {
+      analyzeExports(node);
+      analyzeModule(node);
+    }
+    if (!context.dynamicImport && !context.hoist && !context.topLevel.isTop()) {
+      context.skip();
+    }
+  }
+}
+
+function transform(options) {
+  const context = createContext(options);
+  const analyzer = createAnalyzer(context);
+
   function doWalk() {
-    walk(ast, {
+    walk(context.ast, {
       enter(node, parent) {
         if (node.shouldSkip) {
           this.skip();
           return;
         }
-        topLevel.enter(node, parent);
-        if (scope) {
-          scope.enter(node);
+        context.node = node;
+        context.parent = parent;
+        context.topLevel.enter(node);
+        if (context.scope) {
+          context.scope.enter(node);
         }
-        if (node.type === "VariableDeclaration" && topLevel.isTop()) {
-          topLevelImportTransformer.transformImportDeclare(node);
-          if (!hoist || !hoistExportTransformer.shouldHoist()) {
-            topLevelExportTransformer.transformExportDeclare(node);
-          }
-        } else if (node.type === "AssignmentExpression" && topLevel.isTopChild()) {
-          if (!hoist || !hoistExportTransformer.shouldHoist()) {
-            topLevelExportTransformer.transformExportAssign(node);
-          }
-        } else if (node.type === "CallExpression") {
-          if (dynamicImport) {
-            dynamicImportTransformer.transform(node);
-          }
-          if (topLevel.isTopChild()) {
-            topLevelImportTransformer.transformImportBare(node);
-          }
-          if (hoist) {
-            hoistImportTransformer.transform(node);
-          }
-        } else if (node.type === "Identifier" && hoist) {
-          hoistExportTransformer.transformExport(node, parent);
-          hoistExportTransformer.transformModule(node, parent);
-        }
-        if (!dynamicImport && !hoist && !topLevel.isTop()) {
-          this.skip();
-          if (scope) {
-            scope.leave(node);
-          }
-        }
+        context.walkContext = this;
+        analyzer.enter(node, parent);
       },
       leave(node) {
-        if (scope) {
-          scope.leave(node);
+        if (context.scope) {
+          context.scope.leave(node);
         }
       }
     });
@@ -105,37 +214,17 @@ function transform({
     doWalk();
   } catch (err) {
     if (!err.node) {
-      err.node = topLevel.getCurrent();
+      err.node = context.node;
     }
     throw err;
   }
-  
-  if (hoist) {
-    hoistExportTransformer.write();
-  }
-  if (!hoist || !hoistExportTransformer.isTouched()) {
-    topLevelExportTransformer.writeExport();
-  }
-  if (hoist) {
-    hoistImportTransformer.write({
-      excludeTopLevel: topLevelExportTransformer.isTouched()
-    });
-  }
-  
-  const isTouched =
-    topLevelImportTransformer.isTouched() ||
-    topLevelExportTransformer.isTouched() ||
-    (hoist && (
-      hoistImportTransformer.isTouched() ||
-      hoistExportTransformer.isTouched()
-    )) ||
-    dynamicImport && dynamicImportTransformer.isTouched();
-  
-  return {
-    code: isTouched ? s.toString() : code,
-    map: sourceMap && s.generateMap(),
-    isTouched
-  };
+
+  return createWriter(context).write()
+    .then(() => ({
+      code: context.isTouched ? context.s.toString() : context.code,
+      map: options.sourceMap && context.s.generateMap(),
+      isTouched: context.isTouched
+    }));
 }
 
 module.exports = {transform};
