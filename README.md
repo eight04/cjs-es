@@ -164,8 +164,9 @@ This module exports following members.
 
 `options` has following members:
 
-* `parse`: `function`. A parser function which can parse JavaScript code into ESTree.
+* `parse?`: `function`. A parser function which can parse JavaScript code into ESTree.
 * `code`: `string`. The JavaScript source code.
+* `ast?`: AST object. If set then ignore `options.parse`.
 * `sourceMap?`: `boolean`. If true then generate the source map. Default: `false`
 * `importStyle?`: `string` or `function -> string`. The result must be `"named"` or `"default"`. Default: `"named"`
 
@@ -189,6 +190,10 @@ If an error is thrown during walking the AST, the error has a property `node` wh
 
 Changelog
 ---------
+
+* 0.3.3 (Apr 29, 2018)
+
+  - Add: `options.ast`.
 
 * 0.3.2 (Apr 28, 2018)
 
