@@ -2,7 +2,6 @@ cjs-es
 ======
 
 [![Build Status](https://travis-ci.org/eight04/cjs-es.svg?branch=master)](https://travis-ci.org/eight04/cjs-es)
-
 [![Coverage Status](https://coveralls.io/repos/github/eight04/cjs-es/badge.svg?branch=master)](https://coveralls.io/github/eight04/cjs-es?branch=master)
 
 Transform CommonJS module into ES module.
