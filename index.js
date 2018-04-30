@@ -9,7 +9,7 @@ function transform(options) {
   try {
     analyzer.analyze();
   } catch (err) {
-    if (err.pos == null) {
+    if (err.pos == null && context.node) {
       err.pos = context.node.start;
     }
     throw err;
