@@ -7,7 +7,7 @@ const {transform} = require("..");
 const cases = [
   {
     name: "top-level only",
-    test: dir => !dir.startsWith("nested"),
+    test: dir => !dir.startsWith("nested") && !dir.startsWith("dynamic"),
     options: {}
   }, {
     name: "all cases",
