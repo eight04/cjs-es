@@ -65,8 +65,8 @@ Result:
 import foo from "foo";
 ```
 
-Note that if the identifier is used as a callee of a function/new expression, it would be considered as the default member since the namespace is not callable.
-    
+Note that if the identifier is used as the callee of a function/new expression, it would be considered as the default member since the namespace is not callable.
+
 Export style
 ------------
 
