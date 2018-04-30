@@ -1,3 +1,0 @@
-{
-  "message": "Can not collect named exports to a single object without hoist transformer"
-}

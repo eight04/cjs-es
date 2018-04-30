@@ -175,10 +175,7 @@ This module exports following members.
   - `moduleId`: `string`. The module ID of `require("module-id")`.
 
 * `exportStyle?`: `string` or `function -> string`. The result must be `"named"` or `"default"`. Default: `"named"`
-* `hoist?`: `boolean`. If true then turn on hoist transformer. Default: `false`.
-* `dynamicImport?`: `boolean`. If true then turn on dynamic import transformer. Default: `false`.
-
-If `hoist` and `dynamicImport` are both `false`, the transformer would only traverse top-level nodes of the AST.
+* `nested?`: `boolean`. If true then analyze the entire AST. If false then only analyze top-level nodes. Default: `true`.
 
 The result object has following members:
 
