@@ -215,10 +215,12 @@ This module exports following members.
 
 * `exportStyle?`: `string` or `function -> string`. The result must be `"named"` or `"default"`. Default: `"named"`
 * `nested?`: `boolean`. If true then analyze the entire AST, otherwise only top-level nodes are visited. If there is no nested require/exports/dynamic import statements, it is safe to keep it off. Default: `false`.
-* `warn?`: `function`. This functino is called when the transformer emmits a warning. The arguments are:
+* `warn?`: `function`. This function is called when the transformer emmits a warning. The arguments are:
 
   - `message`: `string`. Warning message.
   - `pos`: `number`. The position of the current node.
+  
+  If undefined, the transformer would use global `console.error`.
 
 `options.importStyle` and `options.exportStyle` could be async, and the return value would be cached (for `importStyle`, the value is cached for each `moduleId`).
 
@@ -232,6 +234,14 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 
 Changelog
 ---------
+
+* 0.4.3 (May 1, 2018)
+
+  - Fix: reassigned import is not a namespace.
+  - Add: `options.warn`.
+  - Add: warn users for unconverted `require`.
+  - Add: support rename for declared named import.
+  - Add: support declared export `const foo = module.exports = ...`.
 
 * 0.4.2 (Apr 30, 2018)
 
