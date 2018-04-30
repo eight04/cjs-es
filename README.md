@@ -8,15 +8,9 @@ Transform CommonJS module into ES module.
 Features
 --------
 
-* Prefer named import/export when possible.
-* Support the syntax that is interchangeable between mjs and js.
-* Convert in-place. By default, it only converts:
-
-  - top-level `require` declaration (`const foo = require("foo")`),
-  - top-level `module.exports`, `exports` assignment (`module.exports = ...`/`const foo = exports.foo = ...`),
-  
-* Hoist the `require`, `exports` statements that is not top-level.
-* Transform dynamic imports. (`Promise.resolve(require("foo"))`)
+* Transform the syntax that is interchangeable between mjs and js e.g. `const foo = require("foo")` -> `import * as foo from "foo";`.
+* Hoist the `require`/`exports` statement that is not top-level.
+* Transform dynamic imports i.e. `Promise.resolve(require("foo"))` -> `import("foo")`
 
 There are more samples under `test/cases` folder.
 
@@ -26,20 +20,21 @@ Usage
 ```js
 const {parse} = require("acorn");
 const {transform} = require("cjs-es");
-const {code} = transform({
-  parse,
-  code: `
+const code = `
 function foo() {}
 function bar() {}
 module.exports = {foo, bar};
-`
-});
-/* code == `
-function foo() {}
-function bar() {}
-export {foo};
-export {bar};
-` */
+`;
+transform({code, parse})
+  .then(result => {
+    console.log(result.code);
+    /* ->
+    function foo() {}
+    function bar() {}
+    export {foo};
+    export {bar};
+    */
+  });
 ```
 
 Import style
@@ -51,13 +46,13 @@ When binding the module into one identifier:
 const foo = require("foo");
 ```
 
-The transformer imports all members from the module by the default:
+The transformer imports all members from the module by default:
 
 ```js
 import * as foo from "foo";
 ```
    
-To import the default member, add `// default` comment:
+To import the default member, mark `require()` as `// default`:
 
 ```js
 const foo = require("foo"); // default
@@ -92,7 +87,7 @@ export {foo};
 export {bar};
 ```
     
-If you like to export the entire object as the default member, you can use `// default` comment at the line of `module.exports`:
+To export the entire object as the default member, mark `module.exports` as `// default`:
 
 ```js
 const foo = "foo";
@@ -117,7 +112,7 @@ export default {
 Hoist
 -----
 
-If the `require`/`module`/`exports` statement are not at the top level, they would be hoisted:
+If the `require`/`module`/`exports` statement are nested, they would be hoisted:
 
 ```js
 if (foo) {
@@ -160,7 +155,7 @@ This module exports following members.
 
 * `transform`: A function which can convert CJS module synax into ES module syntax.
 
-### transform(options?: object): TransformResult object
+### async transform(options?: object): TransformResult object
 
 `options` has following members:
 
@@ -175,7 +170,9 @@ This module exports following members.
   - `moduleId`: `string`. The module ID of `require("module-id")`.
 
 * `exportStyle?`: `string` or `function -> string`. The result must be `"named"` or `"default"`. Default: `"named"`
-* `nested?`: `boolean`. If true then analyze the entire AST. If false then only analyze top-level nodes. Default: `true`.
+* `nested?`: `boolean`. If true then analyze the entire AST, otherwise only top-level nodes are visited. If there is no nested require/exports/dynamic import statements, it is safe to turn it off. Default: `true`.
+
+`options.importStyle` and `options.exportStyle` could be async.
 
 The result object has following members:
 
