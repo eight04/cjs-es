@@ -49,7 +49,10 @@ for (const c of cases) {
         return transform(
           Object.assign({
             code: input,
-            parse
+            parse,
+            warn(message, pos) {
+              throw new Error(`Unexpected warning: ${message}, at ${pos}`);
+            }
           }, c.options, options)
         )
           .then(

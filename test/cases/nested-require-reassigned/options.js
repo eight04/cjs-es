@@ -2,7 +2,7 @@ const assert = require("assert");
 const sinon = require("sinon");
 const options = {
   warn: sinon.spy((message, pos) => {
-    assert.equal(message, "`require` is used as a variable");
+    assert.equal(message, "Unconverted `require`");
     assert.equal(pos, 4);
   }),
   onEnd() {
