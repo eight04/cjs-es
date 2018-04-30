@@ -229,6 +229,10 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 Changelog
 ---------
 
+* 0.4.1 (Apr 30, 2018)
+
+  - Fix: syntax error if exported value is enclosed by parentheses.
+
 * 0.4.0 (Apr 30, 2018)
 
   - Rewrite for async. `options.importStyle` and `options.exportStyle` are async now.
