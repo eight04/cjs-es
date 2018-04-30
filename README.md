@@ -112,10 +112,30 @@ export default {
 };
 ```
 
+Also note that if you set `exportStyle` to `default`, all named exports would be hoisted:
+
+```js
+const foo = "foo";
+const bar = "bar";
+exports.foo = foo;
+exports.bar = bar;
+```
+
+Result:
+
+```js
+const foo = "foo";
+const bar = "bar";
+let _exports_ = {};
+_exports_.foo = foo;
+_exports_.bar = bar;
+export default _exports_;
+```
+
 Hoist
 -----
 
-If the `require`/`module`/`exports` statement are nested, they would be hoisted:
+If the `require`/`module`/`exports` statement are nested, they would be hoisted. Require statement:
 
 ```js
 if (foo) {
@@ -130,6 +150,26 @@ import * as _require_foo_ from "foo";
 if (foo) {
   _require_foo_.foo();
 }
+```
+
+Export statement:
+
+```js
+function test() {
+  return exports.foo();
+}
+exports.foo = () => "foo";
+```
+
+Result:
+
+```js
+let _exports_ = {};
+function test() {
+  return _exports_.foo();
+}
+_exports_.foo = () => "foo";
+export default _exports_;
 ```
 
 Dynamic import
