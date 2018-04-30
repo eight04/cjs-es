@@ -213,7 +213,7 @@ This module exports following members.
   - `moduleId`: `string`. The module ID of `require("module-id")`.
 
 * `exportStyle?`: `string` or `function -> string`. The result must be `"named"` or `"default"`. Default: `"named"`
-* `nested?`: `boolean`. If true then analyze the entire AST, otherwise only top-level nodes are visited. If there is no nested require/exports/dynamic import statements, it is safe to turn it off. Default: `false`.
+* `nested?`: `boolean`. If true then analyze the entire AST, otherwise only top-level nodes are visited. If there is no nested require/exports/dynamic import statements, it is safe to keep it off. Default: `false`.
 
 `options.importStyle` and `options.exportStyle` could be async, and the return value would be cached (for `importStyle`, the value is cached for each `moduleId`).
 
