@@ -34,7 +34,14 @@ for (const c of cases) {
             // pass
           }
         };
-        const options = readFile("options.json") || {};
+        const requireFile = filename => {
+          try {
+            return require(`${__dirname}/cases/${dir}/${filename}`);
+          } catch (err) {
+            // pass
+          }
+        }
+        const options = readFile("options.json") || requireFile("options.js") || {};
         const error = readFile("error.json");
         const input = readFile("input.js");
         const output = readFile("output.js");
@@ -59,7 +66,12 @@ for (const c of cases) {
               }
               assert.equal(err.message, error.message);
             }
-          );
+          )
+          .then(() => {
+            if (options.onEnd) {
+              options.onEnd();
+            }
+          });
       });
     }
   });
