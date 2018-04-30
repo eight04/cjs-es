@@ -40,7 +40,7 @@ for (const c of cases) {
           } catch (err) {
             // pass
           }
-        }
+        };
         const options = readFile("options.json") || requireFile("options.js") || {};
         const error = readFile("error.json");
         const input = readFile("input.js");
