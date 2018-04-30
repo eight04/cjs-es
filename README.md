@@ -215,6 +215,10 @@ This module exports following members.
 
 * `exportStyle?`: `string` or `function -> string`. The result must be `"named"` or `"default"`. Default: `"named"`
 * `nested?`: `boolean`. If true then analyze the entire AST, otherwise only top-level nodes are visited. If there is no nested require/exports/dynamic import statements, it is safe to keep it off. Default: `false`.
+* `warn?`: `function`. This functino is called when the transformer emmits a warning. The arguments are:
+
+  - `message`: `string`. Warning message.
+  - `pos`: `number`. The position of the current node.
 
 `options.importStyle` and `options.exportStyle` could be async, and the return value would be cached (for `importStyle`, the value is cached for each `moduleId`).
 
