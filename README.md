@@ -235,6 +235,10 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 Changelog
 ---------
 
+* 0.4.4 (May 1, 2018)
+
+  - Fix: write export statement after last statement instead of the end of the file.
+
 * 0.4.3 (May 1, 2018)
 
   - Fix: reassigned import is not a namespace.
