@@ -228,6 +228,13 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 Changelog
 ---------
 
+* 0.4.0 (Apr 30, 2018)
+
+  - Rewrite for async. `options.importStyle` and `options.exportStyle` are async now.
+  - Add: `options.nested`.
+  - Fix: namespace is not callable.
+  - **Drop: `options.hoist`, `options.dynamicImport`.**
+
 * 0.3.3 (Apr 29, 2018)
 
   - Add: `options.ast`.
