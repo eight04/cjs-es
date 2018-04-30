@@ -39,24 +39,27 @@ for (const c of cases) {
         const input = readFile("input.js");
         const output = readFile("output.js");
         
-        let result, err;
-        try {
-          result = transform(Object.assign({
+        return transform(
+          Object.assign({
             code: input,
             parse
-          }, c.options, options));
-        } catch (_err) {
-          if (!error) {
-            throw _err;
-          }
-          err = _err;
-        }
-        if (result) {
-          assert.equal(result.code, output);
-          assert.equal(result.isTouched, input !== output);
-        } else {
-          assert.equal(err.message, error.message);
-        }
+          }, c.options, options)
+        )
+          .then(
+            result => {
+              if (error) {
+                throw new Error("Unexpected result");
+              }
+              assert.equal(result.code, output);
+              assert.equal(result.isTouched, input !== output);
+            },
+            err => {
+              if (!error) {
+                throw err;
+              }
+              assert.equal(err.message, error.message);
+            }
+          );
       });
     }
   });
