@@ -233,9 +233,10 @@ Changelog
 * 0.4.0 (Apr 30, 2018)
 
   - Rewrite for async. `options.importStyle` and `options.exportStyle` are async now.
+  - **Change: `transform` function is async now.**
+  - **Drop: `options.hoist`, `options.dynamicImport`.**
   - Add: `options.nested`.
   - Fix: namespace is not callable.
-  - **Drop: `options.hoist`, `options.dynamicImport`.**
 
 * 0.3.3 (Apr 29, 2018)
 
