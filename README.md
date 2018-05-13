@@ -235,6 +235,10 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 Changelog
 ---------
 
+* 0.4.6 (May 13, 2018)
+
+  - Fix: use hires map.
+
 * 0.4.5 (May 1, 2018)
 
   - Fix: arguments of callable require node is ignored.
