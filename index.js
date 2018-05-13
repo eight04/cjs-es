@@ -28,7 +28,7 @@ function transform(options) {
   return createWriter(context).write()
     .then(() => ({
       code: context.s.toString(),
-      map: options.sourceMap && context.s.generateMap(),
+      map: options.sourceMap && context.s.generateMap({hires: true}),
       isTouched: true
     }));
 }
