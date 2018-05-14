@@ -235,6 +235,11 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 Changelog
 ---------
 
+* 0.4.7 (May 15, 2018)
+
+  - Fix: default function/class should be converted into an expression.
+  - Fix: exporting default IIFE causes syntax error.
+
 * 0.4.6 (May 13, 2018)
 
   - Fix: use hires map.
