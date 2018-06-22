@@ -10,8 +10,8 @@ const cases = [
     test: dir => !dir.startsWith("nested") && !dir.startsWith("dynamic"),
     options: {}
   }, {
-    name: "all cases",
-    test: () => true,
+    name: "nested",
+    test: dir => !dir.endsWith("no-nested"),
     options: {nested: true}
   }
 ];
