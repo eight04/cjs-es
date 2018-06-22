@@ -1,4 +1,5 @@
 node_modules
-*.tgz
-.nyc_output
 coverage
+.nyc_output
+.eslintcache
+*.tgz
