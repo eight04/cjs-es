@@ -13,6 +13,11 @@ const cases = [
     name: "nested",
     test: dir => !dir.endsWith("no-nested"),
     options: {nested: true}
+  }, {
+    name: "work without semi",
+    test: dir => !dir.endsWith("no-nested"),
+    options: {nested: true},
+    removeSemi: true
   }
 ];
 
@@ -41,9 +46,15 @@ for (const c of cases) {
             // pass
           }
         };
+        const tryRemoveSemi = (s) => {
+          if (c.removeSemi) {
+            s = s.replace(/;/g, "");
+          }
+          return s;
+        };
         const options = readFile("options.json") || requireFile("options.js") || {};
         const error = readFile("error.json");
-        const input = readFile("input.js");
+        const input = tryRemoveSemi(readFile("input.js"));
         const output = readFile("output.js");
         
         return transform(
@@ -59,6 +70,9 @@ for (const c of cases) {
             result => {
               if (error) {
                 throw new Error("Unexpected result");
+              }
+              if (c.removeSemi) {
+                return;
               }
               assert.equal(result.code, output);
               assert.equal(result.isTouched, input !== output);
