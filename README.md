@@ -3,6 +3,7 @@ cjs-es
 
 [![Build Status](https://travis-ci.org/eight04/cjs-es.svg?branch=master)](https://travis-ci.org/eight04/cjs-es)
 [![Coverage Status](https://coveralls.io/repos/github/eight04/cjs-es/badge.svg?branch=master)](https://coveralls.io/github/eight04/cjs-es?branch=master)
+[![install size](https://packagephobia.now.sh/badge?p=cjs-es)](https://packagephobia.now.sh/result?p=cjs-es)
 
 Transform CommonJS module into ES module.
 
@@ -234,6 +235,10 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 
 Changelog
 ---------
+
+* 0.4.9 (Jun 29, 2018)
+
+  - Fix: failed to transform code without semicolon.
 
 * 0.4.8 (Jun 22, 2018)
 
