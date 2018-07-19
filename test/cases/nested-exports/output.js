@@ -1,5 +1,5 @@
-let _exports_ = {};
 function test() {
-  _exports_.foo();
+  _export_foo_();
 }
-export default _exports_;
+const _export_foo_ = () => "foo";
+export {_export_foo_ as foo};
