@@ -137,7 +137,9 @@ export default _exports_;
 Hoist
 -----
 
-If the `require`/`module`/`exports` statement are nested, they would be hoisted. Require statement:
+If the `require`/`module`/`exports` statement are nested, they would be hoisted.
+
+#### Require statement
 
 ```js
 if (foo) {
@@ -154,7 +156,27 @@ if (foo) {
 }
 ```
 
-Export statement:
+#### Export statement
+
+```js
+function test(key) {
+  exports[key] = "foo";
+}
+exports.foo = "FOO";
+```
+
+Result:
+
+```js
+let _exports_ = {};
+function test(key) {
+  _exports_[key] = "foo";
+}
+_exports_.foo = "FOO";
+export default _exports_;
+```
+
+In some cases, there is no need to hoist the export statement:
 
 ```js
 function test() {
@@ -166,12 +188,11 @@ exports.foo = () => "foo";
 Result:
 
 ```js
-let _exports_ = {};
 function test() {
-  return _exports_.foo();
+  return _export_foo_();
 }
-_exports_.foo = () => "foo";
-export default _exports_;
+const _export_foo_ = () => "foo";
+export {_export_foo_ as foo};
 ```
 
 Dynamic import
@@ -235,6 +256,10 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 
 Changelog
 ---------
+
+* 0.5.0 (Jul 19, 2018)
+
+  - Add: don't hoist export statements in some cases.
 
 * 0.4.9 (Jun 29, 2018)
 
