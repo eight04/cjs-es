@@ -15,7 +15,7 @@ Features
 * Transform dynamic imports i.e. `Promise.resolve(require("foo"))` -> `import("foo")`.
 * Prefer named import/export when possible.
 
-There are more samples under `test/cases` folder.
+There are more examples under `test/cases` folder.
 
 Usage
 -----
@@ -114,7 +114,7 @@ export default {
 };
 ```
 
-Also note that if you set `exportStyle` to `default`, all named exports would be hoisted:
+Also note that if you set `exportStyle` to `default`, all named exports would be merged into a namespace object:
 
 ```js
 const foo = "foo";
@@ -159,40 +159,47 @@ if (foo) {
 #### Export statement
 
 ```js
-function test(key) {
-  exports[key] = "foo";
+if (foo) {
+  module.exports = () => "foo";
+} else {
+  module.exports = () => "bar";
 }
-exports.foo = "FOO";
 ```
 
 Result:
 
 ```js
-let _exports_ = {};
-function test(key) {
-  _exports_[key] = "foo";
+let _module_exports_;
+export default _module_exports_;
+if (foo) {
+  _module_exports_ = () => "foo";
+} else {
+  _module_exports_ = () => "bar";
 }
-_exports_.foo = "FOO";
-export default _exports_;
 ```
 
-In some cases, there is no need to hoist the export statement:
+#### Named export
 
 ```js
-function test() {
-  return exports.foo();
+if (foo) {
+  exports.foo = () => "foo";
 }
-exports.foo = () => "foo";
+function test() {
+  exports.foo = () => "bar";
+}
 ```
 
 Result:
 
 ```js
-function test() {
-  return _export_foo_();
-}
-const _export_foo_ = () => "foo";
+let _export_foo_;
 export {_export_foo_ as foo};
+if (foo) {
+  _export_foo_ = () => "foo";
+}
+function test() {
+  _export_foo_ = () => "bar";
+}
 ```
 
 Dynamic import
@@ -212,6 +219,56 @@ Result:
 export default () => {
   return import("foo");
 };
+```
+
+Use `module.exports`/`exports` at the same time
+-----------------------------------------------
+
+It is not a good idea to put `exports` everywhere, but it is a common pattern:
+
+```js
+if (foo) {
+  exports = module.exports = () => "foo";
+} else {
+  module.exports = exports = () => "bar";
+}
+exports.OK = "OK";
+console.log(module.exports);
+```
+
+All `module.export` and `exports` would be converted into a single reference:
+
+```js
+
+let _module_exports_;
+export default _module_exports_;
+if (foo) {
+  _module_exports_ = () => "foo";
+} else {
+  _module_exports_ = () => "bar";
+}
+_module_exports_.OK = "OK";
+console.log(_module_exports_);
+```
+
+Passing `module` around
+-----------------------
+
+It will generate a module wrapper in this case:
+
+```js
+var define = require('amdefine')(module);
+define(() => {});
+```
+
+Result:
+
+```js
+const _module_ = {exports: {}};
+import _require_amdefine_ from "amdefine";
+var define = _require_amdefine_(_module_);
+define(() => {});
+export default _module_.exports;
 ```
 
 API reference
