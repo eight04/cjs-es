@@ -1,7 +1,6 @@
-const _module_ = {exports: {}};
 function test() {
-  _module_.exports();
+  _module_exports_();
 }
-_module_.exports = () => {};
-export default _module_.exports;
+const _module_exports_ = () => {};
+export default _module_exports_;
 //
