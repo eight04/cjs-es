@@ -314,6 +314,13 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 Changelog
 ---------
 
+* 0.6.2 (Sep 19, 2018)
+
+  - Enhance: try to export live-binding when exporting defaults.
+  - Fix: the logic of module wrapper.
+  - Fix: mixed exports.
+  - Fix: nested module assigned with named exports.
+
 * 0.6.1 (Sep 19, 2018)
 
   - Bump dependencies.
