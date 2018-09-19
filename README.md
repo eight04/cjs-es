@@ -314,6 +314,12 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 Changelog
 ---------
 
+* 0.6.0 (Sep 19, 2018)
+
+  - Fix: computed properties are detected as named exports.
+  - Fix: TypeError when analyzing empty array elements: `[, foo]`.
+  - **Breaking: convert `exports` and `module.exports` to a single reference.**
+
 * 0.5.0 (Jul 19, 2018)
 
   - Add: don't hoist export statements in some cases.
