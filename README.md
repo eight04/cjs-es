@@ -314,6 +314,10 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 Changelog
 ---------
 
+* 0.6.1 (Sep 19, 2018)
+
+  - Bump dependencies.
+
 * 0.6.0 (Sep 19, 2018)
 
   - Fix: computed properties are detected as named exports.
