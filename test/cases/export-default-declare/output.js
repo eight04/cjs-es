@@ -1,2 +1,2 @@
 const foo = function() {};
-export default foo;
+export {foo as default};
