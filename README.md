@@ -128,10 +128,10 @@ Result:
 ```js
 const foo = "foo";
 const bar = "bar";
-let _exports_ = {};
-_exports_.foo = foo;
-_exports_.bar = bar;
-export default _exports_;
+const _module_exports_ = {};
+export {_module_exports_ as default};
+_module_exports_.foo = foo;
+_module_exports_.bar = bar;
 ```
 
 Hoist
@@ -170,7 +170,7 @@ Result:
 
 ```js
 let _module_exports_;
-export default _module_exports_;
+export {_module_exports_ as default};
 if (foo) {
   _module_exports_ = () => "foo";
 } else {
@@ -239,9 +239,8 @@ console.log(module.exports);
 All `module.export` and `exports` would be converted into a single reference:
 
 ```js
-
 let _module_exports_;
-export default _module_exports_;
+export {_module_exports_ as default};
 if (foo) {
   _module_exports_ = () => "foo";
 } else {
