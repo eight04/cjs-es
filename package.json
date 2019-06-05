@@ -33,6 +33,6 @@
     "estree-walker": "^0.5.2",
     "is-reference": "^1.1.0",
     "magic-string": "^0.25.1",
-    "rollup-pluginutils": "^2.3.3"
+    "rollup-pluginutils": "^2.8.1"
   }
 }
