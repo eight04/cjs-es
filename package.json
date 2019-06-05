@@ -15,7 +15,7 @@
     "lib"
   ],
   "scripts": {
-    "test": "eslint **/*.js --cache && nyc --reporter=html mocha",
+    "test": "eslint **/*.js --cache && c8 --reporter=lcov mocha",
     "preversion": "npm test",
     "postversion": "git push --follow-tags && npm publish"
   },
@@ -24,9 +24,9 @@
   "license": "MIT",
   "devDependencies": {
     "acorn": "^6.0.1",
+    "c8": "^5.0.1",
     "eslint": "^5.6.0",
     "mocha": "^5.2.0",
-    "nyc": "^13.0.1",
     "sinon": "^6.3.4"
   },
   "dependencies": {
