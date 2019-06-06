@@ -1,7 +1,7 @@
 cjs-es
 ======
 
-[![Build Status](https://travis-ci.org/eight04/cjs-es.svg?branch=master)](https://travis-ci.org/eight04/cjs-es)
+[![Build Status](https://travis-ci.com/eight04/cjs-es.svg?branch=master)](https://travis-ci.com/eight04/cjs-es)
 [![codecov](https://codecov.io/gh/eight04/cjs-es/branch/master/graph/badge.svg)](https://codecov.io/gh/eight04/cjs-es)
 [![install size](https://packagephobia.now.sh/badge?p=cjs-es)](https://packagephobia.now.sh/result?p=cjs-es)
 
@@ -312,6 +312,10 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 
 Changelog
 ---------
+
+* 0.6.3 (Jun 6, 2019)
+
+  - Fix: assign a default object if `typeof exports` exists.
 
 * 0.6.2 (Sep 19, 2018)
 
