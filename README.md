@@ -313,6 +313,10 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 Changelog
 ---------
 
+* 0.6.4 (Jun 6, 2019)
+
+  - Fix: export default if the object literal has function properties and the function contains `this`.
+
 * 0.6.3 (Jun 6, 2019)
 
   - Fix: assign a default object if `typeof exports` exists.
