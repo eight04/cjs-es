@@ -30,7 +30,7 @@ function transform(options) {
       code: context.s.toString(),
       map: options.sourceMap && context.s.generateMap({hires: true}),
       isTouched: true,
-      _context: context
+      context: context
     }));
 }
 
