@@ -29,7 +29,8 @@ function transform(options) {
     .then(() => ({
       code: context.s.toString(),
       map: options.sourceMap && context.s.generateMap({hires: true}),
-      isTouched: true
+      isTouched: true,
+      context: context
     }));
 }
 

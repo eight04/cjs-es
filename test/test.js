@@ -57,7 +57,7 @@ for (const c of cases) {
         const error = readFile("error.json");
         const input = tryRemoveSemi(readFile("input.js"));
         const output = readFile("output.js");
-        
+        let result;
         return transform(
           Object.assign({
             code: input,
@@ -68,7 +68,8 @@ for (const c of cases) {
           }, c.options, options)
         )
           .then(
-            result => {
+            _result => {
+              result = _result;
               if (error) {
                 throw new Error("Unexpected result");
               }
@@ -87,7 +88,7 @@ for (const c of cases) {
           )
           .then(() => {
             if (options.onEnd) {
-              options.onEnd();
+              options.onEnd(result);
             }
           });
       });
