@@ -313,6 +313,11 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 Changelog
 ---------
 
+* 0.7.0 (Jun 13, 2019)
+
+  - Add: collect import/exrpot information.
+  - Change: export names when module exports object literal and uses nested exports.
+
 * 0.6.4 (Jun 6, 2019)
 
   - Fix: export default if the object literal has function properties and the function contains `this`.
