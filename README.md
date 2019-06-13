@@ -313,6 +313,11 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 Changelog
 ---------
 
+* 0.8.0 (Jun 13, 2019)
+
+  - Refactor scope analyzer and import writer.
+  - Add: `context.finalImportType`.
+
 * 0.7.0 (Jun 13, 2019)
 
   - Add: collect import/exrpot information.
