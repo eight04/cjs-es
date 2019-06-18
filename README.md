@@ -313,6 +313,10 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 Changelog
 ---------
 
+* 0.8.1 (Jun 18, 2019)
+
+  - Fix: don't hoist duplicated imports.
+
 * 0.8.0 (Jun 13, 2019)
 
   - Refactor scope analyzer and import writer.
