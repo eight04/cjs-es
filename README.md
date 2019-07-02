@@ -330,6 +330,10 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 Changelog
 ---------
 
+* 0.8.2 (Jul 2, 2019)
+
+  - Fix: nested export assignment doesn't check if exports is shadowed.
+
 * 0.8.1 (Jun 18, 2019)
 
   - Fix: don't hoist duplicated imports.
