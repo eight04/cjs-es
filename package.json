@@ -1,6 +1,6 @@
 {
   "name": "cjs-es",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Transform CommonJS module into ES module.",
   "keywords": [
     "cjs",
