@@ -1,7 +1,7 @@
 cjs-es
 ======
 
-[![Build Status](https://travis-ci.com/eight04/cjs-es.svg?branch=master)](https://travis-ci.com/eight04/cjs-es)
+[![.github/workflows/build.yml](https://github.com/eight04/cjs-es/actions/workflows/build.yml/badge.svg)](https://github.com/eight04/cjs-es/actions/workflows/build.yml)
 [![codecov](https://codecov.io/gh/eight04/cjs-es/branch/master/graph/badge.svg)](https://codecov.io/gh/eight04/cjs-es)
 [![install size](https://packagephobia.now.sh/badge?p=cjs-es)](https://packagephobia.now.sh/result?p=cjs-es)
 
@@ -28,7 +28,7 @@ function foo() {}
 function bar() {}
 module.exports = {foo, bar};
 `;
-transform({code, parse})
+transform({code, ast: parse(code, {ecmaVersion: "latest"})})
   .then(result => {
     console.log(result.code);
     /* ->
@@ -287,7 +287,7 @@ async transform({
   sourceMap?: Boolean = false,
   importStyle?: String | async (moduleId) => String,
   exportStyle?: String | async () => String,
-  nested?: Boolean,
+  nested?: Boolean = false,
   warn?: (message: String, pos: Number) => void
 })
   => TransformResult
@@ -306,6 +306,8 @@ async transform({
   If `importStyle` is a function, it will only be called once for each `moduleId` if needed.
 
   If `exportStyle` is a function, it will only be called once if needed.
+
+* `nested` - By default, only top-level nodes are analyzed and transformed. To analyze the entire tree, set this to true.
 
 * `warn` - the transformer uses `warn` function to emit a warning. If `warn` is not set then the transformer will print the message to the console using `console.error`.
 
@@ -329,6 +331,11 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 
 Changelog
 ---------
+
+* 0.9.0 (Aug 8, 2022)
+
+  - Bump dependencies.
+  - Fix: always put module wrapper at the top.
 
 * 0.8.2 (Jul 2, 2019)
 
