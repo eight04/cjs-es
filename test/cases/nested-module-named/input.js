@@ -1,3 +1,4 @@
+test();
 function test() {
   module.exports.foo();
 }
