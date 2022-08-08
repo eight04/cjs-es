@@ -2,9 +2,9 @@ const {createContext} = require("./lib/context");
 const {createAnalyzer} = require("./lib/analyzer");
 const {createWriter} = require("./lib/writer");
 
-function transform(options) {
+async function transform(options) {
   const context = createContext(options);
-  const analyzer = createAnalyzer(context);
+  const analyzer = await createAnalyzer(context);
 
   try {
     analyzer.analyze();
@@ -19,19 +19,19 @@ function transform(options) {
     !context.requireNodes.length &&
     !context.exportsNodes.length
   ) {
-    return Promise.resolve({
+    return {
       code: context.code,
       map: null,
       isTouched: false
-    });
+    };
   }
-  return createWriter(context).write()
-    .then(() => ({
-      code: context.s.toString(),
-      map: options.sourceMap && context.s.generateMap({hires: true}),
-      isTouched: true,
-      context: context
-    }));
+  await createWriter(context).write();
+  return {
+    code: context.s.toString(),
+    map: options.sourceMap && context.s.generateMap({hires: true}),
+    isTouched: true,
+    context: context
+  };
 }
 
 module.exports = {transform};

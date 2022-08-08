@@ -61,7 +61,7 @@ for (const c of cases) {
         return transform(
           Object.assign({
             code: input,
-            parse,
+            ast: parse(input, {ecmaVersion: "latest"}),
             warn(message, pos) {
               throw new Error(`Unexpected warning: ${message}, at ${pos}`);
             }
