@@ -332,6 +332,10 @@ If an error is thrown during walking the AST, the error has a property `pos` whi
 Changelog
 ---------
 
+* 0.9.1 (Aug 8, 2022)
+
+  - Fix: the module wrapper is removed when imports are trasnformed.
+
 * 0.9.0 (Aug 8, 2022)
 
   - Bump dependencies.
