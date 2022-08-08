@@ -1,2 +1,2 @@
-module.exports = () => {};
 module.exports.foo = "foo";
+module.exports = () => {};
